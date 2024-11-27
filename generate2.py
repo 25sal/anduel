@@ -60,21 +60,26 @@ def calculate_trajectory(p_incontro, area_size, speed,  angle):
 
 
 # Visualizzazione delle traiettorie
-def visualizza_traiettorie(aerei_data, area_size, p_incontro):
+def visualizza_traiettorie(aerei_data, area_size,):
     fig, ax = plt.subplots(figsize=(8, 8))
 
     # Disegna il bordo dell'area
     ax.plot([0, area_size, area_size, 0, 0], [0, 0, area_size, area_size, 0], 'k-', lw=2, label="Bordo area")
 
-    # Aggiungi il punto di incontro
-    ax.scatter(*p_incontro, color="red", s=100, label="Punto di incontro")
+    
     
     #circle = plt.Circle(p_incontro,max_distance, color='g', fill=True,alpha=0.2)
     #ax.add_patch(circle)
 
     # Disegna le traiettorie degli aerei
     for i, aereo in enumerate(aerei_data):
-        ingresso, uscita, _, speed = aereo
+        ingresso, uscita, p_incontro , speed = aereo
+        if i%2 ==0:
+            # Aggiungi il punto di incontro
+            ax.scatter(*p_incontro, color="red", s=100, label="Punto di incontro")
+            circle = plt.Circle(p_incontro,max_distance, color='g', fill=True,alpha=0.2)
+            ax.add_patch(circle)
+
         t = math.sqrt((ingresso[0]-p_incontro[0])**2 + (ingresso[1]-p_incontro[1])**2) / (speed*0.539957)
         ax.plot([ingresso[0], uscita[0]], [ingresso[1], uscita[1]], label=f"Aereo {i + 1} (Vel: {speed:.1f} km/h) time: {t*60:.2f} h")
         ax.scatter(*ingresso, color="blue", s=50, label=f"Ingresso Aereo {i + 1}" if i == 0 else None)
@@ -96,34 +101,42 @@ def visualizza_traiettorie(aerei_data, area_size, p_incontro):
     plt.show()
 
 
-# Generazione dei dati
-p_incontro = generate_random_point(area_size)  # Punto di incontro casuale
-
-
 aerei_data = []
-time_to_meet = np.zeros(2)
-for i in range(2):
-    # Scegliamo un angolo casuale per la direzione
-    angle = random.uniform(0, 2 * math.pi)
-    speed = random.uniform(speed_min, speed_max)  # Velocità casuale
-    ingresso, uscita = calculate_trajectory(p_incontro, area_size, speed, angle)
-    
-    time_to_meet[i] = math.sqrt((ingresso[0]-p_incontro[0])**2 + (ingresso[1]-p_incontro[1])**2) / (speed*0.539957)
-    aerei_data.append((ingresso, uscita, p_incontro, speed))
-    if i==1:
-        diff_time = abs(time_to_meet[0] - time_to_meet[1])
-        # get the index of the max time
-        max_time = np.argmax(time_to_meet)-2
-        #distanza al punto di incontro
-        dist_p = math.sqrt((aerei_data[max_time][0][0]-p_incontro[0])**2 + (aerei_data[max_time][0][1]-p_incontro[1])**2)
-        shorten_distance = 0.539957 * diff_time * aerei_data[max_time][3]
-        ft = shorten_distance/dist_p
-        ingresso, p_incontro = aerei_data[max_time][0], aerei_data[max_time][2]
-       
-        new_ingresso_x = p_incontro[0] + ft * (ingresso[0]-p_incontro[0])
-        new_ingresso_y = p_incontro[1] + ft * (ingresso[1]-p_incontro[1])
-        print(dist_p, shorten_distance, ingresso, new_ingresso_x, new_ingresso_y)
-        aerei_data[max_time]=((new_ingresso_x, new_ingresso_y), aerei_data[max_time][1], p_incontro, aerei_data[max_time][3])
+for i in range(0,10,2):
+    # Generazione dei dati
+    p_incontro = generate_random_point(area_size)  # Punto di incontro casuale
+
+    time_to_meet = np.zeros(2)
+    for i in range(2):
+        # Scegliamo un angolo casuale per la direzione
+        angle = random.uniform(0, 2 * math.pi)
+        speed = random.uniform(speed_min, speed_max)  # Velocità casuale
+
+        if i==1:
+            rand_distance = random.uniform(0, max_distance)
+            rand_angle = random.uniform(0, 2 * math.pi)
+            p0 = p_incontro[0] + rand_distance * math.cos(rand_angle)
+            p1 = p_incontro[1] + rand_distance * math.sin(rand_angle)
+            p_incontro = (p0, p1)
+
+        ingresso, uscita = calculate_trajectory(p_incontro, area_size, speed, angle)
+        
+        time_to_meet[i] = math.sqrt((ingresso[0]-p_incontro[0])**2 + (ingresso[1]-p_incontro[1])**2) / (speed*0.539957)
+        aerei_data.append((ingresso, uscita, p_incontro, speed))
+        if i==1:
+            diff_time = abs(time_to_meet[0] - time_to_meet[1])
+            # get the index of the max time
+            max_time = np.argmax(time_to_meet)-2
+            ingresso, p_incontro = aerei_data[max_time][0], aerei_data[max_time][2]
+            #distanza al punto di incontro
+            dist_p = math.sqrt((aerei_data[max_time][0][0]-p_incontro[0])**2 + (aerei_data[max_time][0][1]-p_incontro[1])**2)
+            shorten_distance = 0.539957 * diff_time * aerei_data[max_time][3]
+            ft = shorten_distance/dist_p
+        
+            new_ingresso_x = p_incontro[0] + ft * (ingresso[0]-p_incontro[0])
+            new_ingresso_y = p_incontro[1] + ft * (ingresso[1]-p_incontro[1])
+            print(dist_p, shorten_distance, ingresso, new_ingresso_x, new_ingresso_y)
+            aerei_data[max_time]=((new_ingresso_x, new_ingresso_y), aerei_data[max_time][1], p_incontro, aerei_data[max_time][3])
         
         
         
@@ -145,4 +158,4 @@ with open(output_file, mode="w", newline="") as file:
 
 
 # Visualizza le traiettorie
-visualizza_traiettorie(aerei_data, area_size, p_incontro)
+visualizza_traiettorie(aerei_data, area_size)

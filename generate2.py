@@ -125,19 +125,24 @@ for i in range(0,10,2):
         aerei_data.append((ingresso, uscita, p_incontro, speed))
         if i==1:
             diff_time = abs(time_to_meet[0] - time_to_meet[1])
-            # get the index of the max time
+
+            # get the index of the delayed aircraft
             max_time = np.argmax(time_to_meet)-2
+
             ingresso, p_incontro = aerei_data[max_time][0], aerei_data[max_time][2]
             #distanza al punto di incontro
             dist_p = math.sqrt((aerei_data[max_time][0][0]-p_incontro[0])**2 + (aerei_data[max_time][0][1]-p_incontro[1])**2)
+            # distanza da recuperare
             shorten_distance = 0.539957 * diff_time * aerei_data[max_time][3]
-            ft = shorten_distance/dist_p
+            #fattore di proporzionalità per accorciare le componenti
+            ft = 1-shorten_distance/dist_p
         
             new_ingresso_x = p_incontro[0] + ft * (ingresso[0]-p_incontro[0])
             new_ingresso_y = p_incontro[1] + ft * (ingresso[1]-p_incontro[1])
-            print(dist_p, shorten_distance, ingresso, new_ingresso_x, new_ingresso_y)
             aerei_data[max_time]=((new_ingresso_x, new_ingresso_y), aerei_data[max_time][1], p_incontro, aerei_data[max_time][3])
-        
+            t12 = math.sqrt((aerei_data[-1][0][0]-aerei_data[-1][2][0])**2 + (aerei_data[-1][0][1]-aerei_data[-1][2][1])**2) / (aerei_data[-1][3]*0.539957)
+            t22 = math.sqrt((aerei_data[-2][0][0]-aerei_data[-2][2][0])**2 + (aerei_data[-2][0][1]-aerei_data[-2][2][1])**2) / (aerei_data[-2][3]*0.539957)
+            print(f"t11:{time_to_meet[0]} t22:{time_to_meet[1]} t12:{t12} t22:{t22}")
         
         
 
@@ -158,4 +163,4 @@ with open(output_file, mode="w", newline="") as file:
 
 
 # Visualizza le traiettorie
-visualizza_traiettorie(aerei_data, area_size)
+visualizza_traiettorie(aerei_data[:2], area_size)

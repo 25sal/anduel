@@ -9,55 +9,55 @@ max_distance = 2.5  # Raggio massimo per il punto di incontro
 speed_min = 500  # Velocità minima (km/h)
 speed_max = 800  # Velocità massima (km/h)
 
+
+
+
+
 # Funzione per generare un punto casuale all'interno del piano
 def generate_random_point(size):
     return random.uniform(0, size), random.uniform(0, size)
 
 # Funzione per calcolare i punti di ingresso e uscita degli aerei
-def calculate_trajectory(p_incontro, area_size, speed, time_to_meet):
+def calculate_trajectory(p_incontro, area_size, speed,  angle):
     # Calcoliamo la distanza percorsa dall'aereo
-    distance = speed * (time_to_meet / 3600)  # Convertiamo il tempo in ore
-    
-    # Scegliamo un angolo casuale per la direzione
-    angle = random.uniform(0, 2 * math.pi)
+    # distance = speed * (time_to_meet / 3600)  # Convertiamo il tempo in ore
     
     # Calcoliamo il punto di ingresso
-    ingresso_x = p_incontro[0] - distance * math.cos(angle)
-    ingresso_y = p_incontro[1] - distance * math.sin(angle)
+    y1 = (area_size-p_incontro[0]) *math.tan(angle) + p_incontro[1]
+    if y1 > area_size:
+        y1 = area_size
+        x1 = (area_size-p_incontro[1]) / math.tan(angle) + p_incontro[0]
+    else:
+        x1 = area_size
+        y1 = (area_size-p_incontro[0]) *math.tan(angle) + p_incontro[1]
+
+    ingresso_x = x1
+    ingresso_y = y1        
+    
+   
+
+   
+   
     
     # Assicuriamoci che il punto di ingresso sia sul bordo dell'area
     ingresso_x = max(0, min(area_size, ingresso_x))
     ingresso_y = max(0, min(area_size, ingresso_y))
     
     # Calcoliamo il punto di uscita (supponendo che l'aereo prosegua dritto)
-    uscita_x = p_incontro[0] + distance * math.cos(angle)
-    uscita_y = p_incontro[1] + distance * math.sin(angle)
+    y2 = (0-p_incontro[0]) *math.tan(angle) + p_incontro[1]
+    if y2 < 0:
+        y2 = 0
+        x2 = (0-p_incontro[1]) / math.tan(angle) + p_incontro[0]
+    else:
+        x2 = 0
+        y2 = (0-p_incontro[0]) *math.tan(angle) + p_incontro[1]
+    uscita_x = x2
+    uscita_y = y2
     
     return (ingresso_x, ingresso_y), (uscita_x, uscita_y)
 
-# Generazione dei dati
-p_incontro = generate_random_point(area_size)  # Punto di incontro casuale
-time_to_meet = random.uniform(5, 15) * 60  # Tempo di collisione casuale tra 5 e 15 minuti
 
-aerei_data = []
-for _ in range(2):
-    speed = random.uniform(speed_min, speed_max)  # Velocità casuale
-    ingresso, uscita = calculate_trajectory(p_incontro, area_size, speed, time_to_meet)
-    aerei_data.append((ingresso, uscita, p_incontro, speed))
 
-# Salvataggio in un file CSV
-output_file = "traiettorie_aerei.csv"
-with open(output_file, mode="w", newline="") as file:
-    writer = csv.writer(file)
-    writer.writerow(["Ingresso_x", "Ingresso_y", "Uscita_x", "Uscita_y", "PuntoIncontro_x", "PuntoIncontro_y", "Velocità_kmh"])
-    for aereo in aerei_data:
-        ingresso, uscita, p_incontro, speed = aereo
-        writer.writerow([
-            ingresso[0], ingresso[1],
-            uscita[0], uscita[1],
-            p_incontro[0], p_incontro[1],
-            speed
-        ])
 
 # Visualizzazione delle traiettorie
 def visualizza_traiettorie(aerei_data, area_size, p_incontro):
@@ -93,6 +93,35 @@ def visualizza_traiettorie(aerei_data, area_size, p_incontro):
 
     # Mostra il grafico
     plt.show()
+
+
+# Generazione dei dati
+p_incontro = generate_random_point(area_size)  # Punto di incontro casuale
+
+
+aerei_data = []
+for _ in range(2):
+    # Scegliamo un angolo casuale per la direzione
+    angle = random.uniform(0, 2 * math.pi)
+    speed = random.uniform(speed_min, speed_max)  # Velocità casuale
+    ingresso, uscita = calculate_trajectory(p_incontro, area_size, speed, angle)
+    aerei_data.append((ingresso, uscita, p_incontro, speed))
+
+# Salvataggio in un file CSV
+output_file = "traiettorie_aerei.csv"
+with open(output_file, mode="w", newline="") as file:
+    writer = csv.writer(file)
+    writer.writerow(["Ingresso_x", "Ingresso_y", "Uscita_x", "Uscita_y", "PuntoIncontro_x", "PuntoIncontro_y", "Velocità_kmh"])
+    for aereo in aerei_data:
+        ingresso, uscita, p_incontro, speed = aereo
+        writer.writerow([
+            ingresso[0], ingresso[1],
+            uscita[0], uscita[1],
+            p_incontro[0], p_incontro[1],
+            speed
+        ])
+
+
 
 # Visualizza le traiettorie
 visualizza_traiettorie(aerei_data, area_size, p_incontro)

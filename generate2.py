@@ -2,6 +2,7 @@ import csv
 import random
 import math
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Definizione delle dimensioni del piano (in miglia nautiche)
 area_size = 40  # Piano 40 x 40
@@ -24,20 +25,19 @@ def calculate_trajectory(p_incontro, area_size, speed,  angle):
     
     # Calcoliamo il punto di ingresso
     y1 = (area_size-p_incontro[0]) *math.tan(angle) + p_incontro[1]
+    
     if y1 > area_size:
         y1 = area_size
         x1 = (area_size-p_incontro[1]) / math.tan(angle) + p_incontro[0]
+    elif y1 < 0:
+        y1 = 0
+        x1 = (0-p_incontro[1]) / math.tan(angle) + p_incontro[0]
     else:
         x1 = area_size
         y1 = (area_size-p_incontro[0]) *math.tan(angle) + p_incontro[1]
 
     ingresso_x = x1
     ingresso_y = y1        
-    
-   
-
-   
-   
     
     # Assicuriamoci che il punto di ingresso sia sul bordo dell'area
     ingresso_x = max(0, min(area_size, ingresso_x))
@@ -75,7 +75,8 @@ def visualizza_traiettorie(aerei_data, area_size, p_incontro):
     # Disegna le traiettorie degli aerei
     for i, aereo in enumerate(aerei_data):
         ingresso, uscita, _, speed = aereo
-        ax.plot([ingresso[0], uscita[0]], [ingresso[1], uscita[1]], label=f"Aereo {i + 1} (Vel: {speed:.1f} km/h)")
+        t = math.sqrt((ingresso[0]-p_incontro[0])**2 + (ingresso[1]-p_incontro[1])**2) / (speed*0.539957)
+        ax.plot([ingresso[0], uscita[0]], [ingresso[1], uscita[1]], label=f"Aereo {i + 1} (Vel: {speed:.1f} km/h) time: {t*60:.2f} h")
         ax.scatter(*ingresso, color="blue", s=50, label=f"Ingresso Aereo {i + 1}" if i == 0 else None)
         ax.scatter(*uscita, color="green", s=50, label=f"Uscita Aereo {i + 1}" if i == 0 else None)
 
@@ -100,12 +101,30 @@ p_incontro = generate_random_point(area_size)  # Punto di incontro casuale
 
 
 aerei_data = []
-for _ in range(2):
+time_to_meet = np.zeros(2)
+for i in range(2):
     # Scegliamo un angolo casuale per la direzione
     angle = random.uniform(0, 2 * math.pi)
     speed = random.uniform(speed_min, speed_max)  # Velocità casuale
     ingresso, uscita = calculate_trajectory(p_incontro, area_size, speed, angle)
+    
+    time_to_meet[i] = math.sqrt((ingresso[0]-p_incontro[0])**2 + (ingresso[1]-p_incontro[1])**2) / (speed*0.539957)
     aerei_data.append((ingresso, uscita, p_incontro, speed))
+    if i==1:
+        diff_time = abs(time_to_meet[0] - time_to_meet[1])
+        # get the index of the max time
+        max_time = np.argmax(time_to_meet)-2
+        #distanza al punto di incontro
+        dist_p = math.sqrt((aerei_data[max_time][0][0]-p_incontro[0])**2 + (aerei_data[max_time][0][1]-p_incontro[1])**2)
+        shorten_distance = dist_p - 0.539957 * diff_time * aerei_data[max_time][3]
+        ingresso, p_incontro = aerei_data[max_time][0], aerei_data[max_time][2]
+        new_ingresso_x = p_incontro[0] + shorten_distance * math.cos((p_incontro[1]-ingresso[1])/(p_incontro[0]-ingresso[0]))
+        new_ingresso_y = p_incontro[1] + shorten_distance * math.sin((p_incontro[1]-ingresso[1])/(p_incontro[0]-ingresso[0]))
+        print(dist_p, shorten_distance, ingresso, new_ingresso_x, new_ingresso_y)
+        aerei_data.append(((new_ingresso_x, new_ingresso_y), aerei_data[max_time][1], p_incontro, aerei_data[max_time][3]))
+        
+        
+        
 
 # Salvataggio in un file CSV
 output_file = "traiettorie_aerei.csv"

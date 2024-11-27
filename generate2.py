@@ -116,12 +116,14 @@ for i in range(2):
         max_time = np.argmax(time_to_meet)-2
         #distanza al punto di incontro
         dist_p = math.sqrt((aerei_data[max_time][0][0]-p_incontro[0])**2 + (aerei_data[max_time][0][1]-p_incontro[1])**2)
-        shorten_distance = dist_p - 0.539957 * diff_time * aerei_data[max_time][3]
+        shorten_distance = 0.539957 * diff_time * aerei_data[max_time][3]
+        ft = shorten_distance/dist_p
         ingresso, p_incontro = aerei_data[max_time][0], aerei_data[max_time][2]
-        new_ingresso_x = p_incontro[0] + shorten_distance * math.cos((p_incontro[1]-ingresso[1])/(p_incontro[0]-ingresso[0]))
-        new_ingresso_y = p_incontro[1] + shorten_distance * math.sin((p_incontro[1]-ingresso[1])/(p_incontro[0]-ingresso[0]))
+       
+        new_ingresso_x = p_incontro[0] + ft * (ingresso[0]-p_incontro[0])
+        new_ingresso_y = p_incontro[1] + ft * (ingresso[1]-p_incontro[1])
         print(dist_p, shorten_distance, ingresso, new_ingresso_x, new_ingresso_y)
-        aerei_data.append(((new_ingresso_x, new_ingresso_y), aerei_data[max_time][1], p_incontro, aerei_data[max_time][3]))
+        aerei_data[max_time]=((new_ingresso_x, new_ingresso_y), aerei_data[max_time][1], p_incontro, aerei_data[max_time][3])
         
         
         

@@ -72,4 +72,4 @@ aerei_data, p_incontro = leggi_dati_csv(file_csv)
 area_size = 40
 print(len(aerei_data), len(p_incontro))
 # Visualizza le traiettorie
-visualizza_traiettorie(aerei_data[:4], area_size, p_incontro)
+visualizza_traiettorie(aerei_data[:2], area_size, p_incontro)

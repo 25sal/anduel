@@ -108,20 +108,17 @@ def check_conflict_to_csv_point(aircraft, conflict_point, threshold=20.0, lookah
 # -----------------------------------
 # 4. Generate Avoidance Route (with Randomization Option)
 # -----------------------------------
-def generate_avoidance_route(aircraft, conflict_time, angle_range=(-10,10), duration_range=(1.0,3.0)):
+def generate_avoidance_route(aircraft, conflict_time, deviation_angle, duration):
     """
-    Generates a modified route for the aircraft that deviates from its original path.
-    Randomly selects a deviation angle within angle_range (degrees) and a duration within duration_range (minutes).
+    Generates a route for the aircraft using provided deviation_angle and duration.
     Returns a list of route points: [start, conflict_pos, deviation_pos, final_dest].
     """
-    deviation_angle = random.uniform(*angle_range)
-    duration = random.uniform(*duration_range)
-    print(f"[DEBUG] Random deviation angle: {deviation_angle:.2f} deg, duration: {duration:.2f} min")
+    print(f"[DEBUG] Deviation angle: {deviation_angle:.2f} deg, duration: {duration:.2f} min")
 
     x_start = aircraft["Ingresso_x"]
     y_start = aircraft["Ingresso_y"]
-    x_end   = aircraft["Uscita_x"]
-    y_end   = aircraft["Uscita_y"]
+    x_end = aircraft["Uscita_x"]
+    y_end = aircraft["Uscita_y"]
     speed_kmh = aircraft["Velocità_kmh"]
     speed_nm_min = speed_kmh * 0.539957 / 60.0
 
@@ -131,12 +128,10 @@ def generate_avoidance_route(aircraft, conflict_time, angle_range=(-10,10), dura
     vx = x_end - x_start
     vy = y_end - y_start
     mag = math.sqrt(vx**2 + vy**2)
-    if mag < 1e-6:
-        mag = 1.0
     vx /= mag
     vy /= mag
 
-    # Rotate vector by the random deviation_angle (counterclockwise)
+    # Rotate vector by deviation_angle
     rad = math.radians(deviation_angle)
     vx_rot = vx * math.cos(rad) - vy * math.sin(rad)
     vy_rot = vx * math.sin(rad) + vy * math.cos(rad)
@@ -148,10 +143,10 @@ def generate_avoidance_route(aircraft, conflict_time, angle_range=(-10,10), dura
     )
 
     route = [
-        (x_start, y_start),    # start
-        conflict_pos,          # start of deviation (aircraft position at conflict_time)
-        deviation_pos,         # deviation endpoint (after duration)
-        (x_end, y_end)         # final destination
+        (x_start, y_start),  # start
+        conflict_pos,        # deviation start point
+        deviation_pos,       # deviation endpoint
+        (x_end, y_end)       # final destination
     ]
     print(f"[DEBUG] Generated avoidance route: {route}")
     return route
@@ -166,10 +161,12 @@ class AnglePath:
         """
         Generate a random deviation path within constraints.
         """
-        for i in range(0, self.len * 2, 2):
-            self.steps[i] = np.random.uniform(0, self.deadline)
-            self.steps[i + 1] = np.random.uniform(-10, 10)
-        return self.steps
+        random_steps = []
+        for i in range(0, self.len):
+            deviation_time = np.random.uniform(0, self.deadline)
+            deviation_angle = np.random.uniform(-10, 10)
+            random_steps.append((deviation_time, deviation_angle))
+        return random_steps
 
 def plot_all_routes(aerei_data, generated_routes, conflict_point, area_size):
     """Plots original and all generated avoidance routes."""
@@ -229,25 +226,30 @@ if __name__ == "__main__":
     generated_routes = []
     if conflict_detected:
         print(f"[INFO] Conflict detected at t={conflict_time:.2f} min at {conflict_point}")
-        
+
         iterations = 10
         epsilon = 0.5
         for i in range(iterations):
             if random.random() < epsilon:
-                seed = AnglePath(conflict_time=conflict_time)
-                seed_path = seed.random()
-                print(f"[DEBUG] Generated seed path {i}: {seed_path}")
+                # Generate seeds using AnglePath
+                angle_path = AnglePath(conflict_time=conflict_time)
+                seeds = angle_path.random()
                 
+                # Decide explicitly which aircraft must perform avoidance
                 dist0 = distance_2d(predict_position(aerei_data[0], conflict_time), conflict_point)
                 dist1 = distance_2d(predict_position(aerei_data[1], conflict_time), conflict_point)
                 avoiding_aircraft = 0 if dist0 > dist1 else 1
-                
-                avoidance_route = generate_avoidance_route(
-                    aerei_data[avoiding_aircraft], conflict_time, angle_range=(-10,10), duration_range=(1.0,3.0)
-                )
-                print(f"[INFO] Generated avoidance route for Aircraft {avoiding_aircraft}: {avoidance_route}")
-                generated_routes.append(avoidance_route)
-			
+
+                for seed_time, seed_angle in seeds:
+                    duration = random.uniform(1.0, 3.0)  # or fixed duration if you prefer
+                    avoidance_route = generate_avoidance_route(
+                        aerei_data[avoiding_aircraft], 
+                        conflict_time=seed_time, 
+                        deviation_angle=seed_angle, 
+                        duration=duration
+                    )
+                    generated_routes.append(avoidance_route)
+                    print(f"[INFO] Generated route {i} with seed (time={seed_time:.2f}, angle={seed_angle:.2f})")
             else:
                 pass
 			
